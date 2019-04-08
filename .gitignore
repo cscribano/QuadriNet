@@ -1,0 +1,16 @@
+### Pycharm stuffs
+.idea/
+*__pycache__/
+
+### Pytorch model weights
+*.pth
+
+### images
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+
+### logs
+/log/Playground/*
