@@ -5,4 +5,4 @@ EPOCH_LEN: 100
 NLOG_IMGS: 10
 N_WORKERS: 2
 EPOCHS: 999
-DATASET: '../quadri_dataset'
+DATASET: '../quadri_dataset_v1'

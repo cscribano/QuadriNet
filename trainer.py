@@ -18,7 +18,15 @@ from dataset.quadri_dataset import QuadriDataset
 from models import QuadriFcn
 
 from utils import *
-from metrics import  compute_metrics
+from metrics import compute_metrics
+
+"""
+TODO:
+	- Save best IoU not best test loss
+	- Make configure fc-1, fc-2 dropouts
+	- Make sure dropout is disabled in test
+	- Train on new dataset
+"""
 
 class Trainer(object):
 
@@ -138,6 +146,7 @@ class Trainer(object):
 				), end='\r', flush=True)
 
 		# log average loss of this epoch
+		#TODO: save berst IoU not best TestLoss
 		mean_epoch_loss = np.mean(self.train_losses)  # type: float
 		self.sw.add_scalar(tag='train_loss', scalar_value=mean_epoch_loss, global_step=self.epoch)
 		self.train_losses = []
@@ -157,7 +166,7 @@ class Trainer(object):
 		t = time()
 		limgs = 0
 
-		test_losses = []
+		self.test_losses = []
 		test_ac = []
 		test_iou = []
 
@@ -199,7 +208,7 @@ class Trainer(object):
 				limgs += 1
 
 		# log average loss on test set
-		mean_test_loss = float(np.mean(test_losses))
+		mean_test_loss = float(np.mean(self.test_losses))
 		mean_test_ac = float(np.mean(test_ac))
 		mean_test_iou = float(np.mean(test_iou))
 

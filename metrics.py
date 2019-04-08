@@ -6,6 +6,7 @@ from path import Path
 
 import torch
 from torch import tensor
+import torch.nn.functional as F
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
@@ -13,6 +14,9 @@ from matplotlib import pyplot as plt
 np.warnings.filterwarnings('ignore')
 
 Seq = Sequence[Union[int, float]]
+
+def sigmoid(x, derivative=False):
+    return x*(1-x) if derivative else 1/(1+np.exp(-x))
 
 def accuracy(preds, label):
     valid = (label >= 0)
@@ -56,25 +60,30 @@ def compute_metrics(y_true, y_pred):
              (1) met['pp'] = pixel precision
              (2) met['iou'] = intersection over union
     """
-    #y_pred.squeeze_()
-    #y_true.squeeze_()
+
+    imPred = y_pred.cpu().numpy().squeeze()
+    imTrue = y_true.cpu().numpy().squeeze()
 
     #normalize prediction
-    y_pred[y_pred > 0.5] = 1
-    y_pred[y_pred < 0.5] = 0
+    imPred = sigmoid(imPred)
+    imPred[imPred > 0.5] = 1
+    imPred[imPred < 0.5] = 0
 
     #compute IoU
-    intersection, union = intersectionAndUnion(y_pred, y_true, 2)
+    intersection, union = intersectionAndUnion(imPred, imTrue, 2)
 
     #compute IoU only for class '1' since '0' is background
-    iou = intersection[1]/union[1]
+    if union[1] != 0:
+        iou = intersection[1]/union[1]
+    else:
+        iou = 0
 
     #compute pixel accuracy
-    ac = accuracy(y_pred, y_true)[0]
+    ac = accuracy(imPred, imTrue)[0]
 
     # build the metrics dictionary
     metrics = {
-        'iou': iou, 'acc':ac
+        'iou': iou, 'ac':ac
     }
 
     return metrics
@@ -82,7 +91,7 @@ def compute_metrics(y_true, y_pred):
 def main():
     a = np.load('26.npy')
     #b = np.zeros_like(a)
-    b= a.copy()
+    b = a.copy()
 
     c = compute_metrics(a,b)
     print(c)
