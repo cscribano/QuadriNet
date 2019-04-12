@@ -1,8 +1,8 @@
 LR: 0.0001
 BATCH_SIZE: 1
-DEVICE: 'cuda'
+DEVICE: 'cpu'
 EPOCH_LEN: 100
 NLOG_IMGS: 10
 N_WORKERS: 2
 EPOCHS: 999
-DATASET: '../quadri_dataset_v1'
+DATASET: '../dataset_finale'

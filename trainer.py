@@ -5,7 +5,6 @@ import math
 from datetime import datetime
 from time import time
 
-import numpy as np
 import torch
 import torchvision as tv
 from tensorboardX import SummaryWriter
@@ -14,19 +13,33 @@ from torch import optim
 from torch.utils.data import DataLoader
 
 from conf import Conf
-from dataset.quadri_dataset import QuadriDataset
+from dataset.quadri_dataset import DSMode, QuadriDataset
 from models import QuadriFcn
 
 from utils import *
 from metrics import compute_metrics
+from focalloss import FocalLoss
 
 """
+EXP:
+	seed: 8545
+	mean (mask==1)/(mask==0) = 1.7636529435270767 (0/1) = 0.567...
+	p(x=1) = 0.4
+	
+	1.Baseline: BCE loss, no class balance
+	2. Focal loss, gamma=0.5, no class balance
+	3. Focal loss, gamma=0.5, class balance (alpha)
+	4. Dropout = 0.75?
+	
 TODO:
-	- Save best IoU not best test loss
+	- Focal loss
+	- Save best IoU not best test loss (done)
 	- Make configure fc-1, fc-2 dropouts
-	- Make sure dropout is disabled in test
-	- Train on new dataset
+	- Make sure dropout is disabled in test (it is)
+	- Train on new dataset (loading...)
 """
+
+NUM_LOG_IMGS = 10
 
 class Trainer(object):
 
@@ -43,20 +56,21 @@ class Trainer(object):
 		self.optimizer = optim.Adam(params=self.model.parameters(), lr=cnf.lr)
 
 		#Load and split dataset in train - test
-		dataset = QuadriDataset(cnf=cnf)
+		train_dataset = QuadriDataset(cnf=cnf, mode=DSMode.TRAIN)
+		test_dataset = QuadriDataset(cnf=cnf, mode=DSMode.VAL)
 
-		train_size = int(0.9 * len(dataset))#225
-		test_size = len(dataset) - train_size#25
-		training_set, test_set = torch.utils.data.random_split(dataset, [train_size, test_size])
+		#train_size = int(0.9 * len(dataset))#225
+		#test_size = len(dataset) - train_size#25
+		#training_set, test_set = torch.utils.data.random_split(dataset, [train_size, test_size])
 
 		# init train loader
 		self.train_loader = DataLoader(
-			dataset=training_set, batch_size=cnf.batch_size, num_workers=cnf.n_workers, shuffle=True
+			dataset=train_dataset, batch_size=cnf.batch_size, num_workers=cnf.n_workers, shuffle=True
 		)
 
 		# init test loader
 		self.test_loader = DataLoader(
-			dataset=test_set, batch_size=1, num_workers=cnf.n_workers, shuffle=False
+			dataset=test_dataset, batch_size=1, num_workers=cnf.n_workers, shuffle=False
 		)
 
 		#define inverse normalization function, userful for displayng purposes
@@ -75,7 +89,7 @@ class Trainer(object):
 
 		# starting values values
 		self.epoch = 0
-		self.best_test_loss = None
+		self.best_test_IoU = None
 
 		# possibly load checkpoint
 		self.load_ck()
@@ -92,7 +106,7 @@ class Trainer(object):
 			self.epoch = ck['epoch']
 			self.model.load_state_dict(ck['model'])
 			self.optimizer.load_state_dict(ck['optimizer'])
-			self.best_test_loss = self.best_test_loss
+			self.best_test_IoU = self.best_test_IoU
 
 
 	def save_ck(self):
@@ -103,7 +117,7 @@ class Trainer(object):
 			'epoch': self.epoch,
 			'model': self.model.state_dict(),
 			'optimizer': self.optimizer.state_dict(),
-			'best_test_loss': self.best_test_loss
+			'best_test_IoU': self.best_test_IoU
 		}
 		torch.save(ck, self.log_path/'training.ck')
 
@@ -126,7 +140,8 @@ class Trainer(object):
 			x, y_true = x.to(self.cnf.device), y_true.to(self.cnf.device)
 
 			y_pred = self.model.forward(x)
-			loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
+			#loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
+			loss = FocalLoss(gamma=0.5)(y_pred, y_true)
 			loss.backward()
 			self.train_losses.append(loss.item())
 
@@ -175,7 +190,8 @@ class Trainer(object):
 			x, y_true = x.to(self.cnf.device), y_true.to(self.cnf.device)
 			y_pred = self.model.forward(x)
 
-			loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
+			#loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
+			loss = FocalLoss(gamma=0.5)(y_pred, y_true)
 			self.test_losses.append(loss.item())
 
 			#compute metrics
@@ -186,9 +202,10 @@ class Trainer(object):
 			test_iou.append(iou)
 
 			# Log exactly num_logimgs images in TB
-			print_cond = True#step % (len(self.test_loader) // self.cnf.num_logimgs) == 0
+			global NUM_LOG_IMGS
+			print_cond = step % (len(self.test_loader) // NUM_LOG_IMGS) == 0
 
-			if (print_cond and limgs < self.cnf.num_logimgs):
+			if (print_cond and limgs < NUM_LOG_IMGS):
 				# draw results for this step in a 3 rows grid:
 				# row #1: input (x)
 				# row #2: predicted_output (y_pred)
@@ -222,13 +239,13 @@ class Trainer(object):
 		)
 		print(f'│ T: {time() - t:.2f} s')
 
-		self.sw.add_scalar(tag='test/loss', scalar_value=mean_test_loss, global_step=self.epoch)
-		self.sw.add_scalar(tag='test/accuracy', scalar_value=mean_test_ac, global_step=self.epoch)
-		self.sw.add_scalar(tag='test/IOU', scalar_value=mean_test_iou, global_step=self.epoch)
+		self.sw.add_scalar(tag='test/mLoss', scalar_value=mean_test_loss, global_step=self.epoch)
+		self.sw.add_scalar(tag='test/mAccuracy', scalar_value=mean_test_ac, global_step=self.epoch)
+		self.sw.add_scalar(tag='test/mIOU', scalar_value=mean_test_iou, global_step=self.epoch)
 
 		# save best model
-		if self.best_test_loss is None or mean_test_loss < self.best_test_loss:
-			self.best_test_loss = mean_test_loss
+		if self.best_test_IoU is None or mean_test_iou > self.best_test_IoU:
+			self.best_test_IoU = mean_test_iou
 			torch.save(self.model.state_dict(), self.log_path/'best.pth')
 
 

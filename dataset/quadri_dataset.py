@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # ---------------------
 
-import random
 from typing import *
+from enum import IntEnum
 from path import Path
 
 from PIL import Image
@@ -16,6 +16,20 @@ if __name__ == '__main__':
 else:
     from dataset.transforms import Transform
 
+class DSMode(IntEnum):
+    """
+    Dataset mode.
+    >> VAL: mode in which the validation samples are returned
+    >> TEST: mode in which the test samples are returned
+    >> TRAIN: mode in which the training samples are returned
+    """
+    VAL = 0
+    TEST = 1
+    TRAIN = 2
+
+    def __str__(self):
+        return str(self.name).lower().split(sep='.')[-1]
+
 class QuadriDataset(Dataset):
     """
     Dataset composed of pairs (x, y) in which:
@@ -23,14 +37,16 @@ class QuadriDataset(Dataset):
     * y: the segmentation mask corresponding to x
     """
 
-    def __init__(self, cnf):
-        # type: (Conf) -> None
+    def __init__(self, cnf, mode):
+        # type: (Conf, DSMode) -> None
         """
         :param cnf: configuration object
+        :param mode: Train, Test or Validation
         """
         self.cnf = cnf
-        self.imgs_path = cnf.dataset_path/'images'
-        self.masks_path = cnf.dataset_path/'masks'
+        self.mode = mode
+        self.imgs_path = cnf.dataset_path/f'{str(mode)}/images'
+        self.masks_path = cnf.dataset_path/f'{str(mode)}/masks'
 
         #retrieve list of available data items
         self.images_list = sorted(self.imgs_path.files())
@@ -56,14 +72,15 @@ class QuadriDataset(Dataset):
         mask = np.load(self.masks_list[item])
         mask = Image.fromarray(mask)
 
-        #Apply data augmentation
-        image, mask = Transform(flip_prob=0.5, degrees=10, minscale=0.6)(image, mask)
+        #Apply data augmentation in TRAIN mode
+        augment = self.mode == DSMode.TRAIN
+        image, mask = Transform(flip_prob=0.5, degrees=10, minscale=0.6, augment=augment)(image, mask)
 
         return image, mask
 
 def main():
-    cnf = Conf(conf_file_path='../conf/default.yaml', exp_name='default')
-    d = QuadriDataset(cnf)
+    cnf = Conf(conf_file_path='../conf/local.yaml', exp_name='local')
+    d = QuadriDataset(cnf, DSMode.VAL)
     print(len(d))
 
     im, msk = d[36]

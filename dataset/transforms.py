@@ -92,7 +92,7 @@ def pad_if_smaller(image, height=1080, width=1920):
     return image
 
 class Transform(object):
-    def __init__(self, flip_prob=0, degrees=10, minscale=0.6):
+    def __init__(self, flip_prob=0, degrees=10, minscale=0.6, augment=True):
         # type: (float, int, float) -> None
         """
         :param flip_prob: Probability of H-Flip
@@ -102,6 +102,8 @@ class Transform(object):
         self.flip_prob = flip_prob
         self.degrees = degrees
         self.minscale = minscale
+        self.augment = augment
+
         self.to_tensor = T.ToTensor()
         self.normalize = T.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
@@ -112,39 +114,40 @@ class Transform(object):
         assert image.size == target.size, "Image and target must have the same dimension"
         width, heigh = image.size
 
-        #shit happens
+        # shit happens
         if width != 720 or heigh != 405:
             image = resize_with_pad_pil(image, 405, 720)
             target = resize_with_pad_pil(target, 405, 720)
 
             width, heigh = image.size
 
-        #random HFlip
-        if random.random() < self.flip_prob:
-            image = F.hflip(image)
-            target = F.hflip(target)
+        if self.augment:
+            #random HFlip
+            if random.random() < self.flip_prob:
+                image = F.hflip(image)
+                target = F.hflip(target)
 
-        #Random Resized Crop
-        w = int(image.size[0] * random.uniform(self.minscale, 1))
-        h = int(image.size[1] * random.uniform(self.minscale, 1))
+            #Random Resized Crop
+            w = int(image.size[0] * random.uniform(self.minscale, 1))
+            h = int(image.size[1] * random.uniform(self.minscale, 1))
 
-        if w != width and h != heigh:
-            i = random.randint(0,  image.size[1] - h)#top margin
-            j = random.randint(0, image.size[0] - w)#left margin
+            if w != width and h != heigh:
+                i = random.randint(0,  image.size[1] - h)#top margin
+                j = random.randint(0, image.size[0] - w)#left margin
 
-            # margins: (left, upper, right, lower)
-            image = image.crop((j, i, j + w, i + h))
-            target = target.crop((j, i, j + w, i + h))
+                # margins: (left, upper, right, lower)
+                image = image.crop((j, i, j + w, i + h))
+                target = target.crop((j, i, j + w, i + h))
 
-            image = pad_if_smaller(image, width=width, height=heigh)
-            target = pad_if_smaller(target, width=width, height=heigh)
+                image = pad_if_smaller(image, width=width, height=heigh)
+                target = pad_if_smaller(target, width=width, height=heigh)
 
-        #random Rotate
-        angle = random.uniform(-1*self.degrees, self.degrees)
-        #print("Angle{}".format(angle))
-        if angle != 0:
-            image = F.rotate(image, angle, Image.NEAREST)
-            target = F.rotate(target, angle, Image.NEAREST)
+            #random Rotate
+            angle = random.uniform(-1*self.degrees, self.degrees)
+            #print("Angle{}".format(angle))
+            if angle != 0:
+                image = F.rotate(image, angle, Image.NEAREST)
+                target = F.rotate(target, angle, Image.NEAREST)
 
         #Normalize and convert to tensor
         image = self.to_tensor(image)

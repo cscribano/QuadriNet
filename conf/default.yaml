@@ -1,8 +1,8 @@
 LR: 0.0001
-BATCH_SIZE: 1
+BATCH_SIZE: 4
 DEVICE: 'cuda'
-EPOCH_LEN: 100
 NLOG_IMGS: 10
 N_WORKERS: 2
-EPOCHS: 999
-DATASET: '/homes/cscribano/quadri_dataset/'
+EPOCHS: 30
+OUTPUT_PATH: '/nas/softechict-nas-1/cscribano/'
+DATASET: '/nas/softechict-nas-1/cscribano/dataset_finale'

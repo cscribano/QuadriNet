@@ -59,10 +59,6 @@ class Conf(object):
 		b_str = '┗' + '━'*(len(m_str) - 2) + '┛'
 		print(u_str + '\n' + m_str + '\n' + b_str)
 
-		# define output paths
-		self.project_log_path = Path(Conf.OUT_PATH / 'log' / self.project_name)
-		self.exp_log_path = self.project_log_path/exp_name
-
 		# set random seed
 		self.seed = set_seed(seed)  # type: int
 		
@@ -79,6 +75,14 @@ class Conf(object):
 			conf_file = open(conf_file_path, 'r')
 			y = yaml.load(conf_file)
 
+		# define output paths
+		tmp_path = y.get('OUTPUT_PATH', None)  # type: str
+		if tmp_path is not None:
+			Conf.OUT_PATH = Path(tmp_path)
+
+		self.project_log_path = Path(Conf.OUT_PATH / 'log' / self.project_name)
+		self.exp_log_path = self.project_log_path/exp_name
+
 		# read configuration parameters from YAML file
 		# or set their default value
 		self.epochs = y.get('EPOCHS', 10)  # type: int
@@ -87,9 +91,8 @@ class Conf(object):
 		self.n_workers = y.get('N_WORKERS', 0)  # type: int
 		if self.device == 'cuda' and y.get('DEVICE', None) is not None:
 			self.device = y.get('DEVICE')  # type: str
-		self.epoch_len = y.get('EPOCH_LEN', 900)
-		self.num_logimgs = y.get('NLOG_IMGS', 10)
-		self.dataset_path = Path(y.get('DATASET', None))
+		self.num_logimgs = y.get('NLOG_IMGS', 10) # type: int
+		self.dataset_path = Path(y.get('DATASET', None)) # type: Path
 
 	@property
 	def is_cuda(self):
