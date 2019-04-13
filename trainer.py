@@ -140,8 +140,8 @@ class Trainer(object):
 			x, y_true = x.to(self.cnf.device), y_true.to(self.cnf.device)
 
 			y_pred = self.model.forward(x)
-			#loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
-			loss = FocalLoss(gamma=0.5)(y_pred, y_true)
+			loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
+			#loss = FocalLoss(alpha=0.4, gamma=1)(y_pred, y_true)
 			loss.backward()
 			self.train_losses.append(loss.item())
 
@@ -190,8 +190,8 @@ class Trainer(object):
 			x, y_true = x.to(self.cnf.device), y_true.to(self.cnf.device)
 			y_pred = self.model.forward(x)
 
-			#loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
-			loss = FocalLoss(gamma=0.5)(y_pred, y_true)
+			loss = nn.BCEWithLogitsLoss()(y_pred, y_true)
+			#loss = FocalLoss(alpha=0.4, gamma=1)(y_pred, y_true)
 			self.test_losses.append(loss.item())
 
 			#compute metrics

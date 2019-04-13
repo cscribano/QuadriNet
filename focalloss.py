@@ -5,17 +5,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+
 # thanks to University of Tokyo Doi Kento
 # They refered https://github.com/c0nn3r/RetinaNet/blob/master/focal_loss.py
 
 class FocalLoss(nn.Module):
 
-    def __init__(self, gamma=0, alpha=None, size_average=True):
+    def __init__(self, alpha=0.5, gamma=0, reduction='mean'):
         super(FocalLoss, self).__init__()
 
         self.gamma = gamma
         self.alpha = alpha
-        self.size_average = size_average
+        self.reduction = reduction
 
     def forward(self, input, target):
         if input.dim()>2:
@@ -32,24 +33,23 @@ class FocalLoss(nn.Module):
             target = target.view(-1, 1)
 
         # compute the negative likelyhood
-        #logpt = -F.binary_cross_entropy_with_logits(input, target)
-        #pt = torch.exp(logpt)
+        logpt = -F.binary_cross_entropy_with_logits(input, target, reduction='none')
+        pt = torch.exp(logpt)
 
-        logpt = F.log_softmax(input)
-        logpt = logpt.gather(1,target)
-        logpt = logpt.view(-1)
-        pt = Variable(logpt.data.exp())
+        w = Variable(self.alpha*target + (1-self.alpha)*(1-target))
 
-        if self.alpha is not None:
-            if self.alpha.type()!=input.data.type():
-                self.alpha = self.alpha.type_as(input.data)
-            at = self.alpha.gather(0,target.data.view(-1))
-            logpt = logpt * Variable(at)
-
-        loss = -1 * (1-pt)**self.gamma * logpt
-
+        # compute the loss
+        loss_tmp = -1 * w * ((1-pt)**self.gamma) * logpt
+        
         # averaging (or not) loss
-        if self.size_average:
-            return loss.mean()
+        loss = -1
+        if self.reduction == 'none':
+            loss = loss_tmp
+        elif self.reduction == 'mean':
+            loss = torch.mean(loss_tmp)
+        elif self.reduction == 'sum':
+            loss = torch.sum(loss_tmp)
         else:
-            return loss.sum()
+            raise NotImplementedError("Invalid reduction mode: {}"
+                                      .format(self.reduction))
+        return loss
