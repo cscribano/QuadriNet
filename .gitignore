@@ -11,6 +11,8 @@
 *.png
 *.tif
 *.tiff
+*.avi
+*.pth
 
 ### logs
 /log/Playground/*

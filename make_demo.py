@@ -80,14 +80,28 @@ def imtest(resolution = (1920,1080), conf_file_path = None, exp_name = None):
     frame = cv2.cvtColor(frame, code=cv2.COLOR_BGR2RGB) #RGB
     frame = resize_with_pad(frame, height=405, width=720) #1920x1080 -> 720x405
 
-    mask = tester.livetest(frame).numpy() #torch tensor -> np.array
+    #Get network prediction
+    mask = tester.livetest(frame).cpu().numpy() #torch tensor -> np.array
+
+    #preliminary post processing
+    mask = cv2.medianBlur(mask, 5)
+    mask = cv2.GaussianBlur(mask, (15, 15), 0)
+
+    #cool stuff
     mask = sigmoid(mask)
-    mask[mask>0.5] = 10
+    mask[mask>0.5] = 1
     mask[mask<=0.5] = 0
 
+    #Apply predicted mask to image
     mask = mask.astype(np.uint8)
-    im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(frame, contours, -1, (0,255,0), 3, cv2.LINE_8, hierarchy, 100)
+    frame = cv2.cvtColor(frame, code=cv2.COLOR_RGB2BGR) #RGB
+
+    # Draw the contours on the image
+    mask = mask.astype(np.uint8)
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(frame, contours, -1, (0,255,0), 3, cv2.LINE_4, hierarchy, 100)
+
+    frame[:,:,1] = cv2.addWeighted(mask, 100, frame[:,:,1], 1, 0)
 
     #plt.show()
     cv2.imshow("window", frame)
@@ -105,22 +119,38 @@ def videotest(resolution = (1920,1080), conf_file_path = None, exp_name = None):
     ])
 
     tester = LiveTester(cnf, model, transform)
-
-    cap = cv2.VideoCapture('../Immagini/gianluca.mp4')
+    cap = cv2.VideoCapture('../Videotest/videos/media2.mp4')
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('output.avi', fourcc, 30.0, (1920, 1080))
+    out = cv2.VideoWriter('output.avi', fourcc, 30.0, (720, 405))
 
     while cap.isOpened():
         _, frame = cap.read()
-        frame = cv2.cvtColor(frame, code=cv2.COLOR_BGR2RGB)
-        frame = resize_with_pad(frame)
+        frame = cv2.cvtColor(frame, code=cv2.COLOR_BGR2RGB)  # RGB
+        frame = resize_with_pad(frame, height=405, width=720)  # 1920x1080 -> 720x405
 
-        heatmap = tester.livetest(frame).cpu().numpy()  # torch tensor -> np.array
-        heatmap = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
-        heatmap = cv2.resize(heatmap, resolution)
+        # Get network prediction
+        mask = tester.livetest(frame).cpu().numpy()  # torch tensor -> np.array
 
-        frame = cv2.addWeighted(heatmap, 0.3, frame[:, :, ::-1], 0.7, 0)
+        # preliminary post processing
+        mask = cv2.medianBlur(mask, 5)
+        mask = cv2.GaussianBlur(mask, (15, 15), 0)
+
+        # cool stuff
+        mask = sigmoid(mask)
+        mask[mask > 0.5] = 1
+        mask[mask <= 0.5] = 0
+
+        # Apply predicted mask to image
+        mask = mask.astype(np.uint8)
+        frame = cv2.cvtColor(frame, code=cv2.COLOR_RGB2BGR)  # RGB
+
+        # Draw the contours on the image
+        mask = mask.astype(np.uint8)
+        contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(frame, contours, -1, (0, 255, 0), 3, cv2.LINE_4, hierarchy, 100)
+
+        frame[:, :, 1] = cv2.addWeighted(mask, 100, frame[:, :, 1], 1, 0)
         out.write(frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -130,4 +160,4 @@ def videotest(resolution = (1920,1080), conf_file_path = None, exp_name = None):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    imtest(exp_name='local')
+    videotest(exp_name='local')
