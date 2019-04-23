@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from conf import Conf
 from dataset.quadri_dataset import DSMode, QuadriDataset
-from models import QuadriFcn
+from models import QuadriFcn, QuadriNetFancy
 
 from utils import *
 from metrics import compute_metrics
@@ -43,13 +43,14 @@ NUM_LOG_IMGS = 10
 
 class Trainer(object):
 
-	def __init__(self, cnf):
+	def __init__(self, cnf, test_mode=False):
 		# type: (Conf) -> Trainer
 
 		self.cnf = cnf
+		self.test_mode = test_mode
 
 		# init model
-		self.model = QuadriFcn()
+		self.model = QuadriNetFancy(n_class=1)#QuadriFcn()
 		self.model = self.model.to(cnf.device)
 
 		# init optimizer
@@ -59,9 +60,6 @@ class Trainer(object):
 		train_dataset = QuadriDataset(cnf=cnf, mode=DSMode.TRAIN)
 		test_dataset = QuadriDataset(cnf=cnf, mode=DSMode.VAL)
 
-		#train_size = int(0.9 * len(dataset))#225
-		#test_size = len(dataset) - train_size#25
-		#training_set, test_set = torch.utils.data.random_split(dataset, [train_size, test_size])
 
 		# init train loader
 		self.train_loader = DataLoader(
@@ -91,8 +89,21 @@ class Trainer(object):
 		self.epoch = 0
 		self.best_test_IoU = None
 
-		# possibly load checkpoint
-		self.load_ck()
+		if not test_mode:
+			print(f'tensorboard --logdir={cnf.project_log_path.abspath()}\n')
+			self.sw = SummaryWriter(self.log_path)
+
+		# in test model load the best model (if available)
+		if test_mode:
+			ck_path = 'best.pth'
+			# ck_path = self.log_path/'best.pth'
+			if Path(ck_path).exists():
+				print(f'[loading checkpoint \'{ck_path}\']')
+				ck = torch.load(ck_path)
+				self.model.load_state_dict(ck)
+		else:
+			# possibly load checkpoint
+			self.load_ck()
 
 
 	def load_ck(self):
@@ -204,6 +215,7 @@ class Trainer(object):
 			# Log exactly num_logimgs images in TB
 			global NUM_LOG_IMGS
 			print_cond = step % (len(self.test_loader) // NUM_LOG_IMGS) == 0
+			print_cond = print_cond and (self.test_mode is False)
 
 			if (print_cond and limgs < NUM_LOG_IMGS):
 				# draw results for this step in a 3 rows grid:
@@ -239,22 +251,26 @@ class Trainer(object):
 		)
 		print(f'│ T: {time() - t:.2f} s')
 
-		self.sw.add_scalar(tag='test/mLoss', scalar_value=mean_test_loss, global_step=self.epoch)
-		self.sw.add_scalar(tag='test/mAccuracy', scalar_value=mean_test_ac, global_step=self.epoch)
-		self.sw.add_scalar(tag='test/mIOU', scalar_value=mean_test_iou, global_step=self.epoch)
+		if not self.test_mode:
+			self.sw.add_scalar(tag='test/mLoss', scalar_value=mean_test_loss, global_step=self.epoch)
+			self.sw.add_scalar(tag='test/mAccuracy', scalar_value=mean_test_ac, global_step=self.epoch)
+			self.sw.add_scalar(tag='test/mIOU', scalar_value=mean_test_iou, global_step=self.epoch)
 
-		# save best model
-		if self.best_test_IoU is None or mean_test_iou > self.best_test_IoU:
-			self.best_test_IoU = mean_test_iou
-			torch.save(self.model.state_dict(), self.log_path/'best.pth')
+			# save best model
+			if self.best_test_IoU is None or mean_test_iou > self.best_test_IoU:
+				self.best_test_IoU = mean_test_iou
+				torch.save(self.model.state_dict(), self.log_path/'best.pth')
 
 
 	def run(self):
 		"""
 		start model training procedure (train > test > checkpoint > repeat)
 		"""
-		for _ in range(self.epoch, self.cnf.epochs):
-			self.train()
+		if self.test_mode:
 			self.test()
-			self.epoch += 1
-			self.save_ck()
+		else:
+			for _ in range(self.epoch, self.cnf.epochs):
+				self.train()
+				self.test()
+				self.epoch += 1
+				self.save_ck()

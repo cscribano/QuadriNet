@@ -19,7 +19,9 @@ cudnn.benchmark = True
 @click.option('--exp_name', type=str, default=None)
 @click.option('--conf_file_path', type=str, default=None)
 @click.option('--seed', type=int, default=None)
-def main(exp_name, conf_file_path, seed):
+@click.option('--test', '-t', is_flag=True, help="Run in test only mode")
+
+def main(exp_name, conf_file_path, seed, test):
 	# type: (str, str, int) -> None
 
 	# if `exp_name` is None,
@@ -46,7 +48,7 @@ def main(exp_name, conf_file_path, seed):
 
 	print(f'\n▶ Starting Experiment \'{exp_name}\' [seed: {cnf.seed}]')
 
-	trainer = Trainer(cnf=cnf)
+	trainer = Trainer(cnf=cnf, test_mode=test)
 	trainer.run()
 
 

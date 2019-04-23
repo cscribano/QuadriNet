@@ -3,6 +3,6 @@ BATCH_SIZE: 4
 DEVICE: 'cuda'
 NLOG_IMGS: 10
 N_WORKERS: 2
-EPOCHS: 30
+EPOCHS: 50
 OUTPUT_PATH: '/nas/softechict-nas-1/cscribano/'
 DATASET: '/nas/softechict-nas-1/cscribano/dataset_finale'
