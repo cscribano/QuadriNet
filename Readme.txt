@@ -27,7 +27,7 @@ i parametri richiesti sono:
  Esempio:
     make_demo.py -s gitaalmuseo.png -w ../pesi/our.pth -d cuda -o /home/pippo/Scrivania/videofighissimo
 
- Nota:
+ IMPORTANTE:
     Per quanto riguarda il video verà prodotto unicamente un video analogo con la visualizzazione delle classi
     ottenute dalla rete, per le immagini invece verrà prodotta anche una sotto cartella /pictures/ contenente
-    immagini delle regiorni contenenti (si spera) quadri
+    immagini delle regiorni di interesse identificate dalla maschera di segmentazione (si spera).

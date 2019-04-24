@@ -82,7 +82,11 @@ def imtest(tester, source, out):
 
     #Get network prediction
     mask = tester.livetest(frame).cpu().numpy() #torch tensor -> np.array
-    frame = postprocess(mask, frame)
+    ep = Path.dirname(Path(out).abspath())/'pictures'
+    if not ep.exists():
+        ep.mkdir()
+
+    frame = postprocess(mask, frame, True, extract_path=ep)
 
     cv2.imwrite(out, frame)
 
@@ -171,7 +175,7 @@ class LiveTester:
 
         return pred.squeeze()
 
-def postprocess(mask, frame):
+def postprocess(mask, frame, extract=False, extract_path=None):
 
     #preliminary post processing
     mask = cv2.medianBlur(mask, 5)
@@ -189,6 +193,14 @@ def postprocess(mask, frame):
     # Draw the contours on the image
     mask = mask.astype(np.uint8)
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    if extract and extract_path is not None:
+        for i, c in enumerate(contours):
+            if cv2.contourArea(c) > 50:
+                x, y, w, h = cv2.boundingRect(c)
+                cut = frame[y:y + h, x:x + w, :]
+                cv2.imwrite(extract_path/f'{i}.png', cut)
+
     cv2.drawContours(frame, contours, -1, (0,255,0), 3, cv2.LINE_4, hierarchy, 100)
 
     #putting together
