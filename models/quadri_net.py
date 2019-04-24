@@ -106,9 +106,7 @@ class QuadriNetFancy(BaseModel):
 
         x = self.residual2(x)
 
-        x = self.upsample5(x) #1 (832x
-        upsample5 = x
-        torch.add(upsample5, x)
+        x = self.upsample5(x)
 
         x = self.residual3(x)
 

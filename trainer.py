@@ -22,21 +22,12 @@ from focalloss import FocalLoss
 
 """
 EXP:
-	seed: 8545
-	mean (mask==1)/(mask==0) = 1.7636529435270767 (0/1) = 0.567...
-	p(x=1) = 0.4
-	
-	1.Baseline: BCE loss, no class balance
-	2. Focal loss, gamma=0.5, no class balance
-	3. Focal loss, gamma=0.5, class balance (alpha)
-	4. Dropout = 0.75?
-	
-TODO:
-	- Focal loss
-	- Save best IoU not best test loss (done)
-	- Make configure fc-1, fc-2 dropouts
-	- Make sure dropout is disabled in test (it is)
-	- Train on new dataset (loading...)
+	default_01: rete fcn-8
+	default_02: rete fcn-8 con focal loss (quali parametri?)
+	default_03_b: rete nostra con bug somma
+	default_03: rete nostra senza bug e senza residual3
+	default: rete nostra senza bug e CON residual3
+	default_* (todo): rete fcn-8 trainata da 0 per 100 epoche
 """
 
 NUM_LOG_IMGS = 10
