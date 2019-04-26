@@ -24,10 +24,9 @@ def imread(path):
 
 
 def resize_with_pad(image, height=1080, width=1920):
-    # type: (np.array, int, int, str) -> np.array
+    # type: (np.array, int, int) -> np.array
     """
     Resize and image adding a zero padding to keep aspect ratio
-
     :param image: numpy array (3,H,W) usually obtained by OpenCV
     :param height: desires output height
     :param width: desired output width
@@ -36,16 +35,10 @@ def resize_with_pad(image, height=1080, width=1920):
 
     #target padding
     top, bottom, left, right = (0, 0, 0, 0)
-
     h, w, _ = image.shape
 
-    dh = abs(h - height)
-    dw = abs(w - width)
-    closest_edge = min(dh, dw)
-
-    #resise the longest shape to the target size and the shortest accordingly to kep aspect ratio
-    # w is the closest shape -> set width
-    if dh != closest_edge:
+    #set width
+    if h/height < w/width:
         new_height = ceil(h * width/w)
         image = cv2.resize(image, (width, new_height))
 
@@ -54,8 +47,8 @@ def resize_with_pad(image, height=1080, width=1920):
         top = delta_h // 2
         bottom = delta_h - top
 
-    # h is the closest shape (or image is squared) -> set height
-    else:#elif w < longest_edge:
+    #set height
+    else:
         new_width = ceil(w * height/h)
         image = cv2.resize(image, (new_width, height))
 
@@ -67,7 +60,6 @@ def resize_with_pad(image, height=1080, width=1920):
     BLACK = [0, 0, 0]
     #apply padding
     image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=BLACK)
-
     return image
 
 def pyplot_to_numpy(figure):
@@ -181,23 +173,11 @@ def overlap_image_mask(x, prediction):
     return x.unsqueeze(0)
 
 def main():
-    frame = PIL.Image.open('../jta_dataset/frames/train/seq_0/1.jpg')
-    pose = PIL.Image.open('test.jpg')
-
-    #resize Tensor -> Tensor
-    frame = ToTensor()(frame) #3,H,W
-    print(frame.max())
-    frame.unsqueeze_(0) #1,3,W,H
-
-    newframe = tensor_to_img_resize(frame)
-    print(newframe.dtype) #([1, 3, 135, 240])
-
-    e = overlap_image_heatmap(newframe, ToTensor()(pose))
-    print(e.shape) #([1, 3, 135, 240])
-
-    e = e.numpy().squeeze().transpose(1,2,0)
-    plt.imshow(cv2.cvtColor(e, cv2.COLOR_BGR2RGB))
+    a = np.ones(shape=(1080, 500, 1))
+    b = resize_with_pad(a, height=405, width=720)
+    plt.imshow(b, cmap='jet')
     plt.show()
+    print(b.shape)
 
 if __name__ == '__main__':
     main()

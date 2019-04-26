@@ -13,7 +13,7 @@ from path import Path
 
 from metrics import sigmoid
 from utils import resize_with_pad
-from models import BaseModel, QuadriFcn, QuadriNetFancy
+from models import BaseModel, QuadriFcn, QuadriNetFancy, QuadriNet_LESS_Fancy
 
 ###############################
 ## PLEASE CONSULT Readme.TXT ##
@@ -25,7 +25,7 @@ IExtensions = ["png", "jpg", "jpeg"]
 @click.command()
 @click.option('--source', '-s', type=click.Path(exists=True), default=None)
 @click.option('--device', '-d', type=str, default='cpu', help="'cpu' or 'cuda'")
-@click.option('--net', '-n', type=str, default='our', help="'our' or 'fcn8'")
+@click.option('--net', '-n', type=str, default='our1', help="'our1', 'our2' or 'fcn8'")
 @click.option('--weights', '-w', type=click.Path(exists=True), default=None, help="Pre-trained network weights")
 @click.option('--output', '-o', type=str, default='output', help="Destination file")
 def main(source, device, net, weights, output):
@@ -38,6 +38,7 @@ def main(source, device, net, weights, output):
     source_extension = source.split(".")[-1]
     video = False
 
+    source_extension = source_extension.lower()
     if source_extension in VExtensions:
         video = True
     elif source_extension in IExtensions:
@@ -54,8 +55,10 @@ def main(source, device, net, weights, output):
     print(f'>> Selected output file {output}')
 
     #Load the nn module
-    if net == 'our':
+    if net == 'our1':
         model = QuadriNetFancy()
+    elif net == 'our2':
+        model = QuadriNet_LESS_Fancy()
     else:
         model = QuadriFcn()
 

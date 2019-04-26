@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from conf import Conf
 from dataset.quadri_dataset import DSMode, QuadriDataset
-from models import QuadriFcn, QuadriNetFancy
+from models import QuadriFcn, QuadriNetFancy, QuadriNet_LESS_Fancy
 
 from utils import *
 from metrics import compute_metrics
@@ -41,7 +41,10 @@ class Trainer(object):
 		self.test_mode = test_mode
 
 		# init model
-		self.model = QuadriNetFancy(n_class=1)#QuadriFcn()
+		#self.model = QuadriFcn()
+		#self.model = QuadriNetFancy(n_class=1)
+		self.model = QuadriNet_LESS_Fancy(n_class=1)
+
 		self.model = self.model.to(cnf.device)
 
 		# init optimizer
@@ -70,8 +73,6 @@ class Trainer(object):
 
 		# init logging stuffs
 		self.log_path = cnf.exp_log_path
-		print(f'tensorboard --logdir={cnf.project_log_path.abspath()}\n')
-		self.sw = SummaryWriter(self.log_path)
 		self.log_freq = len(self.train_loader)
 		self.train_losses = []
 		self.test_losses = []
@@ -86,8 +87,8 @@ class Trainer(object):
 
 		# in test model load the best model (if available)
 		if test_mode:
-			ck_path = 'best.pth'
-			# ck_path = self.log_path/'best.pth'
+			#ck_path = 'best.pth'
+			ck_path = self.log_path/'best.pth'
 			if Path(ck_path).exists():
 				print(f'[loading checkpoint \'{ck_path}\']')
 				ck = torch.load(ck_path)
