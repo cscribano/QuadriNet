@@ -20,7 +20,8 @@ python -m pip install -r requirements.txt
 Per visualizzare l'output dei modelli proposti è disponibile lo script 'make_demo.py'
 i parametri richiesti sono:
 
-* [--source, -s] il path dell'immagine o video da processare
+* [--source, -s] il path dell'immagine o video da processare, alternativamente è possibile specificare
+  una directory contenente immagini da essere processate in batch (non supportato per video).
 * [--device, -d] il device da utilizzare per il calcolo, 'cpu' o 'cuda' (default: cpu)
 * [--net, -n] la rete da testare, 'fcn8' oppure 'our1' oppure 'our2' (default: ou1)
 * [--weights, -w] il path dei pesi trainati per la rete (Fondamentale)

@@ -10,6 +10,7 @@ import time
 import cv2
 import numpy as np
 from path import Path
+import os
 
 from metrics import sigmoid
 from utils import resize_with_pad
@@ -34,23 +35,29 @@ def main(source, device, net, weights, output):
     if source is None:
         source = input('>> Insert source path: ')
 
-    #check the provided input file
-    source_extension = source.split(".")[-1]
     video = False
 
-    source_extension = source_extension.lower()
-    if source_extension in VExtensions:
-        video = True
-    elif source_extension in IExtensions:
-        pass
+    if not Path(source).isdir():
+        # check the provided input file
+        source_extension = source.split(".")[-1]
+        source_extension = source_extension.lower()
+        output = output + '.' + source_extension
+
+        if source_extension in VExtensions:
+            video = True
+        elif source_extension in IExtensions:
+            pass
+        else:
+            print("Invalid input format, please retry")
+            exit(1)
     else:
-        print("Invalid input format, please retry")
-        exit(1)
+        print(">> Only images are supported for batch processing")
+        source = Path(source).listdir()
+        source = list(filter(lambda x: x.split(".")[-1].lower() in IExtensions, source))
+        output = [Path(output)/f'{i}.{source[i].split(".")[-1].lower()}' for i, _ in enumerate(source)]
 
     if weights is None:
         weights = input('>> Insert Pre-trained wights path (.pth): ')
-
-    output = output+'.'+source_extension
 
     print(f'>> Selected output file {output}')
 
@@ -79,19 +86,24 @@ def main(source, device, net, weights, output):
 
 def imtest(tester, source, out):
 
-    frame = cv2.imread(source, cv2.IMREAD_COLOR) #BGR
-    frame = cv2.cvtColor(frame, code=cv2.COLOR_BGR2RGB) #RGB
-    frame = resize_with_pad(frame, height=405, width=720) #1920x1080 -> 720x405
+    if type(source) != list:
+        source = [source]
+        out = [out]
 
-    #Get network prediction
-    mask = tester.livetest(frame).cpu().numpy() #torch tensor -> np.array
-    ep = Path.dirname(Path(out).abspath())/'pictures'
-    if not ep.exists():
-        ep.mkdir()
+    for i,s in enumerate(source):
+        frame = cv2.imread(s, cv2.IMREAD_COLOR) #BGR
+        frame = cv2.cvtColor(frame, code=cv2.COLOR_BGR2RGB) #RGB
+        frame = resize_with_pad(frame, height=405, width=720) #1920x1080 -> 720x405
 
-    frame = postprocess(mask, frame, True, extract_path=ep)
+        #Get network prediction
+        mask = tester.livetest(frame).cpu().numpy() #torch tensor -> np.array
+        ep = Path.dirname(Path(out[i]).abspath())/f'pictures/{i}'
+        if not ep.exists():
+            os.makedirs(ep)
 
-    cv2.imwrite(out, frame)
+        frame = postprocess(mask, frame, True, extract_path=ep)
+
+        cv2.imwrite(out[i], frame)
 
 def videotest(tester, source, out):
 
