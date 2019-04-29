@@ -15,4 +15,7 @@
 *.pth
 
 ### logs
-/log/Playground/*
+/log/QuadriNet/*
+
+### weights
+/weights/*pth

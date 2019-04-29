@@ -11,17 +11,20 @@
 ## Italian ##
 
 ### Informazioni preliminari:
-In caso di problemi di requisiti è provvisto il file 'requirements.txt', si consiglia di creare un conda/venv
-ove installare tutti i pacchetti necessari
+I pesi trainati (qualora non siano disponibili nella cartella /weights/)
+sono disponibili a https://mega.nz/#!PFkwAK5K!dOA35n8Its7OpSVFWq1ZGsHxTrjKFBa1iPqH1QMn0_0
 
-Conda:
-conda create --name torch --file requirements.txt
+In caso di problemi di requisiti è provvisto il file 'requirements.txt', si consiglia di creare un conda/venv
+ove installare tutti i pacchetti necessari.
+
+Conda:\
+conda create --name torch --file requirements.txt\
 conda activate torch
 
-venv:
-virtualenv torch
-source torch/bin/activate
-python -m pip install -r requirements.txt
+venv:\
+virtualenv torch \
+source torch/bin/activate\
+python -m pip install -r requirements.txt\
 (non testato, si consiglia conda)
 
 Per visualizzare l'output dei modelli proposti è disponibile lo script 'make_demo.py'
@@ -29,7 +32,7 @@ i parametri richiesti sono:
 
 * [--source, -s] il path dell'immagine o video da processare
 * [--device, -d] il device da utilizzare per il calcolo, 'cpu' o 'cuda' (default: cpu)
-* [--net, -n] la rete da testare, 'fcn8' oppure 'our' (default: our)
+* [--net, -n] la rete da testare, 'fcn8' oppure 'our1' oppure 'our2' (default: ou1)
 * [--weights, -w] il path dei pesi trainati per la rete (Fondamentale)
 * [--out, -o] il file di destinazione SENZA ESTENSIONE (di default l' estensione sarà la stessa del file in ingresso,
   default: out.[estensione ingresso]
