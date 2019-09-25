@@ -6,7 +6,7 @@
 - Our Resnet-50 based network (conf.2): https://youtu.be/KleN7qwM4x0
 
 ## Result:
-![Demo image](http://i66.tinypic.com/f1ib93.png)
+<img src="quadri_preview.png" width="800"> 
 
 ## Italian ##
 
